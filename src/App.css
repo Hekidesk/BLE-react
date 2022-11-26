@@ -4,7 +4,8 @@
   place-items: center;
 }
 .main {
-  max-width: 100vw;
+  max-width: 99vw;
+  padding: 1em;
 }
 html,
 address,

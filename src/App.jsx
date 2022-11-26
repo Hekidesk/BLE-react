@@ -98,8 +98,6 @@ function App() {
     charastirctic.stopNotifications();
   };
 
-  console.log(data1.ppg.length);
-
   const sr = 200;
 
   const PPGSdata = {
@@ -185,29 +183,15 @@ function App() {
     },
   });
 
-  const Completionist = () => <span>You are good to go!</span>;
-
-  const renderer = ({ minutes, seconds, completed }) => {
-    if (completed) {
-      return <Completionist />;
-    } else {
-      return (
-        <span>
-          {minutes}:{seconds}
-        </span>
-      );
-    }
-  };
-
   if (!charastirctic) {
     return (
       <div className="container">
         <Popover title="Hekidesk" visible>
-          <h5>Turn on your bluetooth!</h5>
+          <h4>Turn on your bluetooth!</h4>
           <br />
-          <p>Click on connect and select device.</p>
+          <h6>Click on connect and select device.</h6>
         </Popover>
-        <Button color="yellow" appearance="primary" onClick={connect}>
+        <Button size="lg" color="violet" appearance="primary" onClick={connect}>
           connect
         </Button>
       </div>
@@ -218,8 +202,8 @@ function App() {
     <div className="main">
       <Grid fluid>
         <Row gutter={16}>
-          <Col xs={3}>
-            Manual start:{" "}
+          <Col xs={24} style={{ marginBottom: "1em" }}>
+            Manual start:
             <Toggle
               onChange={() => {
                 if (!show) {
@@ -235,6 +219,8 @@ function App() {
               unCheckedChildren="off"
             />
           </Col>
+        </Row>
+        <Row gutter={16}>
           <Col xs={6}>
             <Stack
               spacing={6}
@@ -256,9 +242,10 @@ function App() {
               >
                 take sample for {count} seconds
               </Button>
-              start after 5 seconds!
+              <h5> start after 5 seconds!</h5>
             </Stack>
           </Col>
+
           <Col xs={3}>
             <Button
               color="yellow"
@@ -281,12 +268,10 @@ function App() {
               stop
             </Button>
           </Col>
-        </Row>
-        <Row>
-          <Col xs={3}></Col>
-          <Col xs={6}>
-            sample rate:
+          <Col xs={12}>
+            sample time:
             <Slider
+              style={{ marginTop: "1em" }}
               onChange={setCount}
               step={5}
               defaultValue={count}
@@ -294,9 +279,18 @@ function App() {
               max={120}
             />
           </Col>
-          <Col xs={3}>{ppg && <p>{ppg} ppg!</p>}</Col>
-          <Col xs={3}>{ecg && <p>{ecg} ecg!</p>}</Col>
-          <Col xs={5}>{force && <p>{force} force!</p>}</Col>
+        </Row>
+        <Row style={{ marginTop: "1em" }}>
+          <Col xs={3}>inputs:</Col>
+          <Col xs={3}>
+            <p>{ppg} ppg</p>
+          </Col>
+          <Col xs={3}>
+            <p>{ecg} ecg</p>
+          </Col>
+          <Col xs={5}>
+            <p>{force} force</p>
+          </Col>
         </Row>
       </Grid>
       <Line
