@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Button, Col, Grid, Popover, Row, Slider, Stack, Toggle } from "rsuite";
+import {
+  Button,
+  Col,
+  Divider,
+  Grid,
+  Popover,
+  Row,
+  Slider,
+  Stack,
+  Toggle,
+} from "rsuite";
 import "./App.css";
 import Chart from "chart.js/auto";
 
@@ -7,7 +17,8 @@ import "rsuite/dist/rsuite.min.css";
 import { Line } from "react-chartjs-2";
 
 const ServiceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-const CharistristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+const ReadCharistristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+const WriteCharistristicUUID = "e505ffd3-ecd5-4365-b57d-70202ab71692";
 
 const selectWindow = (data, all, windowsize) => {
   if (all) {
@@ -19,6 +30,8 @@ const selectWindow = (data, all, windowsize) => {
 
 function App() {
   const [charastirctic, setCharastirctic] = useState();
+  const [device, setDevice] = useState();
+
   const [show, setShow] = useState(false);
   const [count, setCount] = useState(10);
 
@@ -56,39 +69,61 @@ function App() {
     navigator.bluetooth
       .requestDevice({
         optionalServices: [ServiceUUID],
-        filters: [{ namePrefix: "ECG-PPG-Server" }],
+        filters: [{ name: "ECG-PPG-Server" }],
       })
       .then((device) => {
+        setDevice(device);
         device.gatt.connect().then((gatt) => {
           gatt.getPrimaryService(ServiceUUID).then((service) => {
             service
-              .getCharacteristic(CharistristicUUID)
-              .then((charastirctic) => {
-                setCharastirctic(charastirctic);
-                charastirctic.oncharacteristicvaluechanged = (data) => {
-                  setPpg(data.srcElement.value.getUint16(0, true));
-                  ppgs.push(data.srcElement.value.getUint16(0, true));
-
-                  setEcg(data.srcElement.value.getInt16(2, true));
-                  ecgs.push(data.srcElement.value.getInt16(2, true));
-
-                  setForce(
-                    Bytes2Float16(data.srcElement.value.getUint16(4, true))
-                  );
-                  forces.push(
-                    Bytes2Float16(data.srcElement.value.getUint16(4, true))
-                  );
-                  setData1({
-                    ppg: ppgs,
-                    ecg: ecgs,
-                    force: forces,
+              .getCharacteristic(WriteCharistristicUUID)
+              .then((char) => {
+                return char.writeValue(0x8f); //auth
+              })
+              .then(() => {
+                return service
+                  .getCharacteristic(WriteCharistristicUUID)
+                  .then((char2) => {
+                    return char2.writeValue(0x07); //send 3 data
                   });
-                };
+              })
+              .then((_) => {
+                service
+                  .getCharacteristic(ReadCharistristicUUID)
+                  .then((charastirctic) => {
+                    setCharastirctic(charastirctic);
+
+                    charastirctic.oncharacteristicvaluechanged = (data) => {
+                      setPpg(data.srcElement.value.getUint16(0, true));
+                      ppgs.push(data.srcElement.value.getUint16(0, true));
+
+                      setEcg(data.srcElement.value.getInt16(2, true));
+                      ecgs.push(data.srcElement.value.getInt16(2, true));
+
+                      setForce(
+                        Bytes2Float16(data.srcElement.value.getUint16(4, true))
+                      );
+                      forces.push(
+                        Bytes2Float16(data.srcElement.value.getUint16(4, true))
+                      );
+                      setData1({
+                        ppg: ppgs,
+                        ecg: ecgs,
+                        force: forces,
+                      });
+                    };
+                  });
               });
           });
         });
       });
   }
+
+  const disconnect = () => {
+    device.gatt.disconnect();
+    setCharastirctic(null);
+    setDevice(null);
+  };
 
   const start = () => {
     charastirctic.startNotifications();
@@ -105,7 +140,7 @@ function App() {
     datasets: [
       {
         data: { ...selectWindow(data1.ppg, !show, sr) }, //ppgs
-        label: "PPGS",
+        label: "PPG",
         borderColor: "#3333ff",
       },
     ],
@@ -116,7 +151,7 @@ function App() {
     datasets: [
       {
         data: { ...selectWindow(data1.ecg, !show, sr) }, //ecgs
-        label: "ECGS",
+        label: "ECG",
         borderColor: "#9F288D",
       },
     ],
@@ -126,10 +161,8 @@ function App() {
     labels: [0],
     datasets: [
       {
-        data: {
-          ...{ ...selectWindow(data1.force, !show, sr) },
-        }, //forces
-        label: "FORCES",
+        data: { ...selectWindow(data1.force, !show, sr) }, //forces
+        label: "FORCE",
         borderColor: "#85A434",
       },
     ],
@@ -154,7 +187,7 @@ function App() {
                 y: y,
               });
             },
-            delay: 5000,
+            delay: 0,
             time: {
               displayFormat: "ss",
             },
@@ -202,7 +235,7 @@ function App() {
     <div className="main">
       <Grid fluid>
         <Row gutter={16}>
-          <Col xs={24} style={{ marginBottom: "1em" }}>
+          <Col xs={12} style={{ marginBottom: "1em" }}>
             Manual start:
             <Toggle
               onChange={() => {
@@ -218,6 +251,11 @@ function App() {
               checkedChildren="on"
               unCheckedChildren="off"
             />
+          </Col>
+          <Col xs={12} style={{ marginBottom: "1em" }}>
+            <Button color="violet" appearance="primary" onClick={disconnect}>
+              disconnect
+            </Button>
           </Col>
         </Row>
         <Row gutter={16}>
@@ -275,7 +313,7 @@ function App() {
               onChange={setCount}
               step={5}
               defaultValue={count}
-              min={10}
+              min={5}
               max={120}
             />
           </Col>
@@ -293,6 +331,7 @@ function App() {
           </Col>
         </Row>
       </Grid>
+      <Divider>Plots</Divider>
       <Line
         data={PPGSdata}
         options={options(ppg)}
@@ -311,6 +350,8 @@ function App() {
         height="400px"
         width="3000px"
       />
+      <Divider>Data</Divider>
+      <code>{JSON.stringify(data1, null, 2)}</code>
     </div>
   );
 }
