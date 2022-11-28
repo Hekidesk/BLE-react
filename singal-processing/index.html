@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <title>REPL</title>
+
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+</head>
+
+<body>
+    <script>
+        function createObject(object, variableName) {
+            let execString = variableName + " = object"
+            eval(execString)
+        }
+    </script>
+    <py-config type="json" src="./py.config.json" ></py-config>
+    <py-script src="Processor.py"></py-script>
+
+    <button onclick="alert(HR_1([1, 2, 4, 5, -10,100,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,100000,1,1,1,1,1,1,1,1,1,1,1,1,1,1], 20))">ClicK!</button>
+</body>
+
+</html>
