@@ -13,6 +13,10 @@ import {
 import "./App.css";
 import Chart from "chart.js/auto";
 
+// import zoomPlugin from "chartjs-plugin-zoom";
+
+// Chart.register(zoomPlugin);
+
 import "rsuite/dist/rsuite.min.css";
 import { Line } from "react-chartjs-2";
 
@@ -78,13 +82,13 @@ function App() {
             service
               .getCharacteristic(WriteCharistristicUUID)
               .then((char) => {
-                return char.writeValue(0x8f); //auth
+                return char.writeValue(new Uint8Array([0x8f]).buffer); //auth 0x8f
               })
               .then(() => {
                 return service
                   .getCharacteristic(WriteCharistristicUUID)
                   .then((char2) => {
-                    return char2.writeValue(0x07); //send 3 data
+                    return char2.writeValue(new Uint8Array([0x07]).buffer); //send 3 data 0x07
                   });
               })
               .then((_) => {
@@ -169,7 +173,20 @@ function App() {
   };
 
   const options = (y) => ({
-    responsive: true,
+    responsive: false,
+    // plugins: {
+    //   zoom: {
+    //     zoom: {
+    //       wheel: {
+    //         enabled: true,
+    //       },
+    //       pinch: {
+    //         enabled: true,
+    //       },
+    //       mode: "xy",
+    //     },
+    //   },
+    // },
     elements: {
       line: {
         tension: 0,
@@ -196,7 +213,7 @@ function App() {
             displayFormats: 1,
             maxRotation: 0,
             minRotation: 0,
-            stepSize: 1000,
+            stepSize: 10,
             minUnit: "second",
             source: "auto",
             autoSkip: true,
@@ -290,6 +307,9 @@ function App() {
               appearance="primary"
               onClick={() => {
                 setData1({ ppg: [], ecg: [], force: [] });
+                setPpg(0);
+                setEcg(0);
+                setForce(0);
               }}
             >
               reset
@@ -326,8 +346,11 @@ function App() {
           <Col xs={3}>
             <p>{ecg} ecg</p>
           </Col>
-          <Col xs={5}>
+          <Col xs={3}>
             <p>{force} force</p>
+          </Col>
+          <Col xs={5}>
+            <p>{data1.ecg.length} count</p>
           </Col>
         </Row>
       </Grid>
@@ -335,20 +358,20 @@ function App() {
       <Line
         data={PPGSdata}
         options={options(ppg)}
-        height="400px"
-        width="3000px"
+        height="600px"
+        width="3500px"
       />
       <Line
         data={ECGSdata}
         options={options(ecg)}
-        height="400px"
-        width="3000px"
+        height="600px"
+        width="3500px"
       />
       <Line
         data={FORCESdata}
         options={options(force)}
-        height="400px"
-        width="3000px"
+        height="600px"
+        width="3500px"
       />
       <Divider>Data</Divider>
       <code>{JSON.stringify(data1, null, 2)}</code>
