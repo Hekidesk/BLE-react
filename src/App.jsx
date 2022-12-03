@@ -19,10 +19,8 @@ import Chart from "chart.js/auto";
 
 import "rsuite/dist/rsuite.min.css";
 import { Line } from "react-chartjs-2";
+import { useFakeSignalFeed } from "./singal/FakeSingalFeed";
 
-const ServiceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-const ReadCharistristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-const WriteCharistristicUUID = "e505ffd3-ecd5-4365-b57d-70202ab71692";
 
 const selectWindow = (data, all, windowsize) => {
   if (all) {
@@ -33,117 +31,34 @@ const selectWindow = (data, all, windowsize) => {
 };
 
 function App() {
-  const [charastirctic, setCharastirctic] = useState();
-  const [device, setDevice] = useState();
-
   const [show, setShow] = useState(false);
   const [count, setCount] = useState(10);
+  const { stop, start, isConnected } = useFakeSignalFeed(0x07, hanldeCallback)
 
-  const [ppg, setPpg] = useState();
-  const [ecg, setEcg] = useState();
-  const [force, setForce] = useState();
-  const [data1, setData1] = useState({
-    ppg: [],
-    ecg: [],
-    force: [],
-  });
-
+  const sr = 200;
   const ppgs = [];
   const ecgs = [];
   const forces = [];
+  const ppgBuffer = [];
+  const ecgBuffer = [];
+  const forceBuffer = [];
 
-  function Bytes2Float16(bytes) {
-    let sign = bytes & 0x8000 ? -1 : 1;
-    let exponent = ((bytes >> 10) & 0x1f) - 15;
-    let significand = bytes & ~(-1 << 10);
+  const hanldeCallback = ({ ppg, ecg, force }) => {
+    ppgs.push(ppg)
+    ecgs.push(ecg)
+    forces.push(force)
 
-    if (exponent == 16)
-      return sign * (significand ? Number.NaN : Number.POSITIVE_INFINITY);
-
-    if (exponent == -15) {
-      if (significand == 0) return sign * 0.0;
-      exponent = -14;
-      significand /= 1 << 9;
-    } else significand = (significand | (1 << 10)) / (1 << 10);
-
-    return sign * significand * Math.pow(2, exponent);
+    const now = moment();
+    ppgBuffer.push({ x: now, y: ppg })
+    ecgBuffer.push({ x: now, y: ecg })
+    forceBuffer.push({ x: now, y: force })
   }
-
-  function connect() {
-    navigator.bluetooth
-      .requestDevice({
-        optionalServices: [ServiceUUID],
-        filters: [{ name: "ECG-PPG-Server" }],
-      })
-      .then((device) => {
-        setDevice(device);
-        device.gatt.connect().then((gatt) => {
-          gatt.getPrimaryService(ServiceUUID).then((service) => {
-            service
-              .getCharacteristic(WriteCharistristicUUID)
-              .then((char) => {
-                return char.writeValue(new Uint8Array([0x8f]).buffer); //auth 0x8f
-              })
-              .then(() => {
-                return service
-                  .getCharacteristic(WriteCharistristicUUID)
-                  .then((char2) => {
-                    return char2.writeValue(new Uint8Array([0x07]).buffer); //send 3 data 0x07
-                  });
-              })
-              .then((_) => {
-                service
-                  .getCharacteristic(ReadCharistristicUUID)
-                  .then((charastirctic) => {
-                    setCharastirctic(charastirctic);
-
-                    charastirctic.oncharacteristicvaluechanged = (data) => {
-                      setPpg(data.srcElement.value.getUint16(0, true));
-                      ppgs.push(data.srcElement.value.getUint16(0, true));
-
-                      setEcg(data.srcElement.value.getInt16(2, true));
-                      ecgs.push(data.srcElement.value.getInt16(2, true));
-
-                      setForce(
-                        Bytes2Float16(data.srcElement.value.getUint16(4, true))
-                      );
-                      forces.push(
-                        Bytes2Float16(data.srcElement.value.getUint16(4, true))
-                      );
-                      setData1({
-                        ppg: ppgs,
-                        ecg: ecgs,
-                        force: forces,
-                      });
-                    };
-                  });
-              });
-          });
-        });
-      });
-  }
-
-  const disconnect = () => {
-    device.gatt.disconnect();
-    setCharastirctic(null);
-    setDevice(null);
-  };
-
-  const start = () => {
-    charastirctic.startNotifications();
-  };
-
-  const stop = () => {
-    charastirctic.stopNotifications();
-  };
-
-  const sr = 200;
 
   const PPGSdata = {
     labels: [0],
     datasets: [
       {
-        data: { ...selectWindow(data1.ppg, !show, sr) }, //ppgs
+        data: { ...selectWindow(ppgs, !show, sr) }, //ppgs
         label: "PPG",
         borderColor: "#3333ff",
       },
@@ -154,7 +69,7 @@ function App() {
     labels: [0],
     datasets: [
       {
-        data: { ...selectWindow(data1.ecg, !show, sr) }, //ecgs
+        data: { ...selectWindow(ecgs, !show, sr) }, //ecgs
         label: "ECG",
         borderColor: "#9F288D",
       },
@@ -165,14 +80,14 @@ function App() {
     labels: [0],
     datasets: [
       {
-        data: { ...selectWindow(data1.force, !show, sr) }, //forces
+        data: { ...selectWindow(forces, !show, sr) }, //forces
         label: "FORCE",
         borderColor: "#85A434",
       },
     ],
   };
 
-  const options = (y) => ({
+  const options = (newData) => ({
     responsive: false,
     // plugins: {
     //   zoom: {
@@ -199,10 +114,8 @@ function App() {
           distribution: "linear",
           realtime: {
             onRefresh: function (chart) {
-              chart.data.datasets[0].data.push({
-                x: moment(),
-                y: y,
-              });
+              const data = chart.data.datasets[0].data
+              chart.data.datasets[0].data = [...data, ...newData];
             },
             delay: 0,
             time: {
@@ -233,7 +146,7 @@ function App() {
     },
   });
 
-  if (!charastirctic) {
+  if (!isConnected) {
     return (
       <div className="container">
         <Popover title="Hekidesk" visible>
@@ -306,10 +219,6 @@ function App() {
               color="yellow"
               appearance="primary"
               onClick={() => {
-                setData1({ ppg: [], ecg: [], force: [] });
-                setPpg(0);
-                setEcg(0);
-                setForce(0);
               }}
             >
               reset
@@ -357,19 +266,19 @@ function App() {
       <Divider>Plots</Divider>
       <Line
         data={PPGSdata}
-        options={options(ppg)}
+        options={options(ppgBuffer)}
         height="600px"
         width="3500px"
       />
       <Line
         data={ECGSdata}
-        options={options(ecg)}
+        options={options(ecgBuffer)}
         height="600px"
         width="3500px"
       />
       <Line
         data={FORCESdata}
-        options={options(force)}
+        options={options(forceBuffer)}
         height="600px"
         width="3500px"
       />
