@@ -1,152 +1,98 @@
-import { useState } from "react";
-import {
-  Button,
-  Col,
-  Divider,
-  Grid,
-  Popover,
-  Row,
-  Slider,
-  Stack,
-  Toggle,
-} from "rsuite";
 import "./App.css";
-import Chart from "chart.js/auto";
-
-// import zoomPlugin from "chartjs-plugin-zoom";
-
-// Chart.register(zoomPlugin);
-
+import * as React from "react";
+import { Button, Popover, Toggle } from "rsuite";
+import { useState } from "react";
 import "rsuite/dist/rsuite.min.css";
-import { Line } from "react-chartjs-2";
-import { useFakeSignalFeed } from "./singal/FakeSingalFeed";
+import { Dashboard } from "./Dashboard";
 
+const ServiceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+const ReadCharistristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+const WriteCharistristicUUID = "e505ffd3-ecd5-4365-b57d-70202ab71692";
 
-const selectWindow = (data, all, windowsize) => {
-  if (all) {
-    return data;
-  }
+const size = 200;
 
-  return data.slice(data.length - windowsize, data.length);
+const getCode = (selection) => {
+  const { ppg, ecg, force } = selection;
+  if (ppg && !ecg && !force) return 0x01;
+  if (!ppg && ecg && !force) return 0x02;
+  if (ppg && ecg && !force) return 0x03;
+  if (!ppg && !ecg && force) return 0x04;
+  if (ppg && !ecg && force) return 0x05;
+  if (!ppg && ecg && force) return 0x06;
+  if (ppg && ecg && force) return 0x07;
+  return 0x00;
 };
 
 function App() {
-  const [show, setShow] = useState(false);
-  const [count, setCount] = useState(10);
-  const { stop, start, isConnected } = useFakeSignalFeed(0x07, hanldeCallback)
+  const [charastirctic, setCharastirctic] = useState();
+  const [device, setDevice] = useState();
 
-  const sr = 200;
-  const ppgs = [];
-  const ecgs = [];
-  const forces = [];
-  const ppgBuffer = [];
-  const ecgBuffer = [];
-  const forceBuffer = [];
-
-  const hanldeCallback = ({ ppg, ecg, force }) => {
-    ppgs.push(ppg)
-    ecgs.push(ecg)
-    forces.push(force)
-
-    const now = moment();
-    ppgBuffer.push({ x: now, y: ppg })
-    ecgBuffer.push({ x: now, y: ecg })
-    forceBuffer.push({ x: now, y: force })
-  }
-
-  const PPGSdata = {
-    labels: [0],
-    datasets: [
-      {
-        data: { ...selectWindow(ppgs, !show, sr) }, //ppgs
-        label: "PPG",
-        borderColor: "#3333ff",
-      },
-    ],
-  };
-
-  const ECGSdata = {
-    labels: [0],
-    datasets: [
-      {
-        data: { ...selectWindow(ecgs, !show, sr) }, //ecgs
-        label: "ECG",
-        borderColor: "#9F288D",
-      },
-    ],
-  };
-
-  const FORCESdata = {
-    labels: [0],
-    datasets: [
-      {
-        data: { ...selectWindow(forces, !show, sr) }, //forces
-        label: "FORCE",
-        borderColor: "#85A434",
-      },
-    ],
-  };
-
-  const options = (newData) => ({
-    responsive: false,
-    // plugins: {
-    //   zoom: {
-    //     zoom: {
-    //       wheel: {
-    //         enabled: true,
-    //       },
-    //       pinch: {
-    //         enabled: true,
-    //       },
-    //       mode: "xy",
-    //     },
-    //   },
-    // },
-    elements: {
-      line: {
-        tension: 0,
-      },
-    },
-    scales: {
-      xAxes: [
-        {
-          type: "realtime",
-          distribution: "linear",
-          realtime: {
-            onRefresh: function (chart) {
-              const data = chart.data.datasets[0].data
-              chart.data.datasets[0].data = [...data, ...newData];
-            },
-            delay: 0,
-            time: {
-              displayFormat: "ss",
-            },
-          },
-          ticks: {
-            displayFormats: 1,
-            maxRotation: 0,
-            minRotation: 0,
-            stepSize: 10,
-            minUnit: "second",
-            source: "auto",
-            autoSkip: true,
-            callback: function (value) {
-              return moment(value, "HH:mm:ss").format("ss");
-            },
-          },
-        },
-      ],
-      yAxes: [
-        {
-          ticks: {
-            beginAtZero: true,
-          },
-        },
-      ],
-    },
+  const [selection, setSelection] = useState({
+    ppg: false,
+    ecg: false,
+    force: false,
   });
 
-  if (!isConnected) {
+  const [data1, setData1] = useState({
+    ppg: [...new Array(size)],
+    ecg: [...new Array(size)],
+    force: [...new Array(size)],
+  });
+
+  const ppgs = [...new Array(size)];
+  const ecgs = [...new Array(size)];
+  const forces = [...new Array(size)];
+
+  function connect() {
+    navigator.bluetooth
+      .requestDevice({
+        optionalServices: [ServiceUUID],
+        filters: [{ name: "ECG-PPG-Server" }],
+      })
+      .then((device) => {
+        setDevice(device);
+        device.gatt.connect().then((gatt) => {
+          gatt.getPrimaryService(ServiceUUID).then((service) => {
+            service
+              .getCharacteristic(WriteCharistristicUUID)
+              .then((char) => {
+                return char.writeValue(new Uint8Array([0x8f]).buffer); //auth 0x8f
+              })
+              .then(() => {
+                return service
+                  .getCharacteristic(WriteCharistristicUUID)
+                  .then((char2) => {
+                    return char2.writeValue(
+                      new Uint8Array([getCode(selection)]).buffer
+                    ); //send 3 data 0x07
+                  });
+              })
+              .then(() => {
+                service
+                  .getCharacteristic(ReadCharistristicUUID)
+                  .then((charastirctic) => {
+                    setCharastirctic(charastirctic);
+
+                    charastirctic.oncharacteristicvaluechanged = (data) => {
+                      ppgs.push(data.srcElement.value.getUint16(0, true));
+                      ecgs.push(data.srcElement.value.getInt16(2, true));
+                      forces.push(
+                        Bytes2Float16(data.srcElement.value.getUint16(4, true))
+                      );
+                      setData1({
+                        ppg: ppgs,
+                        ecg: ecgs,
+                        force: forces,
+                      });
+                    };
+                  });
+              });
+          });
+        });
+      });
+  }
+
+  if (!charastirctic) {
     return (
       <div className="container">
         <Popover title="Hekidesk" visible>
@@ -154,138 +100,71 @@ function App() {
           <br />
           <h6>Click on connect and select device.</h6>
         </Popover>
-        <Button size="lg" color="violet" appearance="primary" onClick={connect}>
-          connect
-        </Button>
+        <div className="selection">
+          <div>
+            <label>PPG: </label>
+            <Toggle
+              size="lg"
+              checkedChildren="PPG"
+              unCheckedChildren=" "
+              onChange={(e) => setSelection({ ...selection, ppg: e })}
+            />
+            <label>ECG: </label>
+            <Toggle
+              size="lg"
+              checkedChildren="ECG"
+              unCheckedChildren=" "
+              onChange={(e) => setSelection({ ...selection, ecg: e })}
+            />
+            <label>FORCE: </label>
+            <Toggle
+              size="lg"
+              checkedChildren="FORCE"
+              unCheckedChildren=" "
+              onChange={(e) => setSelection({ ...selection, force: e })}
+            />
+          </div>
+          <Button
+            size="lg"
+            color="violet"
+            appearance="primary"
+            onClick={connect}
+          >
+            connect
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="main">
-      <Grid fluid>
-        <Row gutter={16}>
-          <Col xs={12} style={{ marginBottom: "1em" }}>
-            Manual start:
-            <Toggle
-              onChange={() => {
-                if (!show) {
-                  start();
-                  setShow(true);
-                } else {
-                  stop();
-                  setShow(false);
-                }
-              }}
-              size="lg"
-              checkedChildren="on"
-              unCheckedChildren="off"
-            />
-          </Col>
-          <Col xs={12} style={{ marginBottom: "1em" }}>
-            <Button color="violet" appearance="primary" onClick={disconnect}>
-              disconnect
-            </Button>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={6}>
-            <Stack
-              spacing={6}
-              direction={"column"}
-              alignItems={"center"}
-              justifyContent={"center"}
-            >
-              <Button
-                color="green"
-                appearance="primary"
-                onClick={() => {
-                  setTimeout(() => {
-                    start();
-                  }, 5000);
-                  setTimeout(() => {
-                    stop();
-                  }, count * 1000 + 5000);
-                }}
-              >
-                take sample for {count} seconds
-              </Button>
-              <h5> start after 5 seconds!</h5>
-            </Stack>
-          </Col>
-
-          <Col xs={3}>
-            <Button
-              color="yellow"
-              appearance="primary"
-              onClick={() => {
-              }}
-            >
-              reset
-            </Button>
-          </Col>
-          <Col xs={3}>
-            <Button
-              color="red"
-              appearance="primary"
-              onClick={() => {
-                stop();
-              }}
-            >
-              stop
-            </Button>
-          </Col>
-          <Col xs={12}>
-            sample time:
-            <Slider
-              style={{ marginTop: "1em" }}
-              onChange={setCount}
-              step={5}
-              defaultValue={count}
-              min={5}
-              max={120}
-            />
-          </Col>
-        </Row>
-        <Row style={{ marginTop: "1em" }}>
-          <Col xs={3}>inputs:</Col>
-          <Col xs={3}>
-            <p>{ppg} ppg</p>
-          </Col>
-          <Col xs={3}>
-            <p>{ecg} ecg</p>
-          </Col>
-          <Col xs={3}>
-            <p>{force} force</p>
-          </Col>
-          <Col xs={5}>
-            <p>{data1.ecg.length} count</p>
-          </Col>
-        </Row>
-      </Grid>
-      <Divider>Plots</Divider>
-      <Line
-        data={PPGSdata}
-        options={options(ppgBuffer)}
-        height="600px"
-        width="3500px"
-      />
-      <Line
-        data={ECGSdata}
-        options={options(ecgBuffer)}
-        height="600px"
-        width="3500px"
-      />
-      <Line
-        data={FORCESdata}
-        options={options(forceBuffer)}
-        height="600px"
-        width="3500px"
-      />
-      <Divider>Data</Divider>
-      <code>{JSON.stringify(data1, null, 2)}</code>
-    </div>
+    <Dashboard
+      device={device}
+      setCharastirctic={setCharastirctic}
+      setDevice={setDevice}
+      charastirctic={charastirctic}
+      data1={data1}
+      setData1={setData1}
+      selection={selection}
+    />
   );
 }
 
 export default App;
+
+function Bytes2Float16(bytes) {
+  let sign = bytes & 0x8000 ? -1 : 1;
+  let exponent = ((bytes >> 10) & 0x1f) - 15;
+  let significand = bytes & ~(-1 << 10);
+
+  if (exponent == 16)
+    return sign * (significand ? Number.NaN : Number.POSITIVE_INFINITY);
+
+  if (exponent == -15) {
+    if (significand == 0) return sign * 0.0;
+    exponent = -14;
+    significand /= 1 << 9;
+  } else significand = (significand | (1 << 10)) / (1 << 10);
+
+  return sign * significand * Math.pow(2, exponent);
+}
