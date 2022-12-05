@@ -24,7 +24,7 @@ export const Dashboard = ({
   const [show, setShow] = useState(false);
   const [count, setCount] = useState(10);
   const [heartBeat, setHeartBeat] = useState();
-  const [startTime, setStartTime] = useState();
+  
 
   const disconnect = () => {
     device.gatt.disconnect();
@@ -32,8 +32,10 @@ export const Dashboard = ({
     setDevice(null);
   };
 
+  let startTime;
+
   const start = () => {
-    setStartTime(new Date().getTime())
+    startTime = performance.now()
     charastirctic.startNotifications();
   };
 
@@ -41,10 +43,8 @@ export const Dashboard = ({
     charastirctic.stopNotifications();
 
     if (selection.ecg) {
-      const duration = new Date().getTime() - startTime;
-      console.log(data1['ecg'])
-      console.log(duration)
-      const heartBeat = HeartBeat(data1['ecg'], duration / 1000)
+      const duration = performance.now() - startTime;
+      const heartBeat = HeartBeat(data1['ecg'], Math.round(duration / 1000))
       setHeartBeat(heartBeat)
     }
   };
@@ -90,10 +90,10 @@ export const Dashboard = ({
                   onClick={() => {
                     setTimeout(() => {
                       start();
-                    }, 5000);
+                    }, 1000);
                     setTimeout(() => {
                       stop();
-                    }, count * 1000 + 5000);
+                    }, count * 1000 + 1000);
                   }}
                 >
                   take sample for {count} seconds

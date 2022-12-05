@@ -12,6 +12,8 @@ def filter(data, cutoff, fs, order, filter_type):
     return y
 
 def HeartBeat(ECG, fs):
+  print(ECG)
+  print(fs)
   dt = 1/ fs
   t = np.linspace(0, len(ECG)/fs, len(ECG), endpoint = True)
   ECG_filtered1 = filter(ECG, 5, fs, 10, 'high')
