@@ -52,6 +52,8 @@ def HeartBeat(ECG, fs):
   period = np.mean(peak_times[1:] - peak_times[:-1])
   HR = 60 / period
 
+  print("Here")
+  print(HR)
   return HR
 
 def HeartBeat_Adapter(ECG_data, sample_duration):

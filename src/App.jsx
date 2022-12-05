@@ -4,8 +4,6 @@ import { Button, Popover, Toggle } from "rsuite";
 import { useState } from "react";
 import "rsuite/dist/rsuite.min.css";
 import { Dashboard } from "./Dashboard";
-import { useEffect } from "react";
-import { contains } from "rsuite/esm/DOMHelper";
 
 const ServiceUUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const ReadCharistristicUUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
