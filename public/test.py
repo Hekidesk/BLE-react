@@ -10,8 +10,6 @@ def filter(data, cutoff, fs, order, filter_type):
     return y
 
 def HeartBeat(ECG, fs):
-  print(ECG)
-  print(fs)
   dt = 1/ fs
   t = np.linspace(0, len(ECG)/fs, len(ECG), endpoint = True)
   ECG_filtered1 = filter(ECG, 5, fs, 10, 'high')
@@ -27,7 +25,7 @@ def HeartBeat(ECG, fs):
     thr_OL = sum(np.sort(NN)[-3:-1]) / 6
     ou = np.where(NN < thr_OL)
     ou = ou[0][:]
-    if ou:
+    if ou.any():
       temp = np.min([values[ou].T,values[ou+1].T] , axis=0)
       for i in range(len(temp)):
         peaks = peaks[values != temp[i]]
@@ -39,7 +37,7 @@ def HeartBeat(ECG, fs):
     thr_OL = np.mean(NN) * 1.5
     ou = np.where(NN > thr_OL)
     ou = ou[0][:]
-    if ou:
+    if ou.any():
       temp = np.min([values[ou].T,values[ou+1].T] , axis=0)
       for i in range(len(temp)):
         peaks = peaks[values != temp[i]]
@@ -1091,4 +1089,4 @@ a = [
     159
 ]
 
-print(HeartBeat(a, ))
+print(HeartBeat(a, 80))
