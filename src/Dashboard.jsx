@@ -23,6 +23,8 @@ export const Dashboard = ({
 }) => {
   const [show, setShow] = useState(false);
   const [count, setCount] = useState(10);
+  const [heartBeat, setHeartBeat] = useState();
+  const [startTime, setStartTime] = useState();
 
   const disconnect = () => {
     device.gatt.disconnect();
@@ -31,11 +33,20 @@ export const Dashboard = ({
   };
 
   const start = () => {
+    setStartTime(new Date().getTime())
     charastirctic.startNotifications();
   };
 
   const stop = () => {
     charastirctic.stopNotifications();
+
+    if (selection.ecg) {
+      const duration = new Date().getTime() - startTime;
+      console.log(data1['ecg'])
+      console.log(duration)
+      const heartBeat = HeartBeat(data1['ecg'], duration / 1000)
+      setHeartBeat(heartBeat)
+    }
   };
   return (
     <>
@@ -143,10 +154,13 @@ export const Dashboard = ({
           />
         )}
         {selection.ecg && (
-          <Diagram
-            dataKey={"ecg"}
-            flow={selectWindow(data1.ecg, !show, size)}
-          />
+          <>
+            <Diagram
+              dataKey={"ecg"}
+              flow={selectWindow(data1.ecg, !show, size)}
+            />
+            <p>{heartBeat}</p>
+          </>
         )}
         {selection.force && (
           <Diagram
