@@ -39,9 +39,15 @@ function App() {
     force: [],
   });
 
-  const ppgs = [];
-  const ecgs = [];
-  const forces = [];
+  let ppgs = [];
+  let ecgs = [];
+  let forces = [];
+
+  const resetData = () => {
+    ppgs = [];
+    ecgs = [];
+    forces = [];
+  };
 
   function connect() {
     navigator.bluetooth
@@ -146,6 +152,7 @@ function App() {
       data1={data1}
       setData1={setData1}
       selection={selection}
+      resetData={resetData}
     />
   );
 }

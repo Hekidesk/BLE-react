@@ -77,8 +77,8 @@ const Diagram = ({ dataKey, flow }) => {
   }
 
   function zoomOut() {
-    this.setState(() => ({
-      data: steam,
+    setState(() => ({
+      data: undefined,
       refAreaLeft: "",
       refAreaRight: "",
       left: "dataMin",

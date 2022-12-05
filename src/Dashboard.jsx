@@ -20,6 +20,7 @@ export const Dashboard = ({
   data1,
   setData1,
   selection,
+  resetData,
 }) => {
   const [show, setShow] = useState(false);
   const [count, setCount] = useState(10);
@@ -97,6 +98,7 @@ export const Dashboard = ({
                 appearance="primary"
                 onClick={() => {
                   setData1({ ppg: [], ecg: [], force: [] });
+                  resetData();
                 }}
               >
                 reset
