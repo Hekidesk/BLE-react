@@ -24,6 +24,8 @@ export const Dashboard = ({
 }) => {
   const [show, setShow] = useState(false);
   const [count, setCount] = useState(10);
+  const [heartBeat, setHeartBeat] = useState();
+  
 
   const disconnect = () => {
     device.gatt.disconnect();
@@ -31,12 +33,21 @@ export const Dashboard = ({
     setDevice(null);
   };
 
+  let startTime;
+
   const start = () => {
+    startTime = performance.now()
     charastirctic.startNotifications();
   };
 
   const stop = () => {
     charastirctic.stopNotifications();
+
+    if (selection.ecg) {
+      const duration = performance.now() - startTime;
+      const heartBeat = HeartBeat(data1['ecg'], Math.round(duration / 1000))
+      setHeartBeat(heartBeat)
+    }
   };
   return (
     <>
@@ -80,10 +91,10 @@ export const Dashboard = ({
                   onClick={() => {
                     setTimeout(() => {
                       start();
-                    }, 5000);
+                    }, 1000);
                     setTimeout(() => {
                       stop();
-                    }, count * 1000 + 5000);
+                    }, count * 1000 + 1000);
                   }}
                 >
                   take sample for {count} seconds
@@ -145,10 +156,13 @@ export const Dashboard = ({
           />
         )}
         {selection.ecg && (
-          <Diagram
-            dataKey={"ecg"}
-            flow={selectWindow(data1.ecg, !show, size)}
-          />
+          <>
+            <Diagram
+              dataKey={"ecg"}
+              flow={selectWindow(data1.ecg, !show, size)}
+            />
+            <p>{heartBeat}</p>
+          </>
         )}
         {selection.force && (
           <Diagram
