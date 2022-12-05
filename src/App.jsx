@@ -36,15 +36,15 @@ function App() {
   });
 
   const [data1, setData1] = useState({
-    ppg: [...new Array(size)],
-    ecg: [...new Array(size)],
-    force: [...new Array(size)],
+    ppg: [],
+    ecg: [],
+    force: [],
   });
 
-  const ppgs = [...new Array(size)];
-  const ecgs = [...new Array(size)];
-  const forces = [...new Array(size)];
-  
+  const ppgs = [];
+  const ecgs = [];
+  const forces = [];
+
   function connect() {
     navigator.bluetooth
       .requestDevice({

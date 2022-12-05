@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -14,11 +15,10 @@ const Diagram = ({ dataKey, flow }) => {
     return {
       name: id,
       [dataKey]: item,
-      impression: 100,
+      impression: 0,
     };
   });
   const [state, setState] = React.useState({
-    data: [],
     left: "dataMin",
     right: "dataMax",
     refAreaLeft: "",
@@ -30,9 +30,7 @@ const Diagram = ({ dataKey, flow }) => {
 
   const getAxisYDomain = (from, to, ref, offset) => {
     const refData = steam.slice(from - 1, to);
-
     let [bottom, top] = [refData[0][ref], refData[0][ref]];
-
     refData.forEach((d) => {
       if (d[ref] > top) top = d[ref];
       if (d[ref] < bottom) bottom = d[ref];
@@ -46,34 +44,40 @@ const Diagram = ({ dataKey, flow }) => {
 
     if (refAreaLeft === refAreaRight || refAreaRight === "") {
       setState(() => ({
-        ...state,
-        data: steam,
         refAreaLeft: "",
         refAreaRight: "",
       }));
       return;
     }
 
+    // xAxis domain
     if (refAreaLeft > refAreaRight)
       [refAreaLeft, refAreaRight] = [refAreaRight, refAreaLeft];
 
-    const [bottom, top] = getAxisYDomain(refAreaLeft, refAreaRight, dataKey, 1);
+    // yAxis domain
+    const [bottom, top] = getAxisYDomain(refAreaLeft, refAreaRight, "cost", 1);
+    const [bottom2, top2] = getAxisYDomain(
+      refAreaLeft,
+      refAreaRight,
+      "impression",
+      50
+    );
 
     setState(() => ({
-      ...state,
       refAreaLeft: "",
       refAreaRight: "",
-      data: steam,
+      data: steam.slice(refAreaLeft, refAreaRight),
       left: refAreaLeft,
       right: refAreaRight,
       bottom,
       top,
+      bottom2,
+      top2,
     }));
   }
 
   function zoomOut() {
-    setState(() => ({
-      ...state,
+    this.setState(() => ({
       data: steam,
       refAreaLeft: "",
       refAreaRight: "",
@@ -81,6 +85,8 @@ const Diagram = ({ dataKey, flow }) => {
       right: "dataMax",
       top: "dataMax+1",
       bottom: "dataMin",
+      top2: "dataMax+50",
+      bottom2: "dataMin+50",
     }));
   }
   return (
@@ -90,8 +96,8 @@ const Diagram = ({ dataKey, flow }) => {
       </button>
       <LineChart
         width={1500}
-        height={600}
-        data={steam}
+        height={650}
+        data={state.data ?? steam}
         onMouseDown={(e) => setState({ ...state, refAreaLeft: e.activeLabel })}
         onMouseMove={(e) =>
           state.refAreaLeft &&
@@ -109,7 +115,7 @@ const Diagram = ({ dataKey, flow }) => {
         <Tooltip />
         <Line
           yAxisId="1"
-          type="natural"
+          type="linear"
           dataKey={dataKey}
           stroke="#8884d8"
           animationDuration={300}
