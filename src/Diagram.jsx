@@ -11,7 +11,6 @@ import {
 } from "recharts";
 
 const Diagram = ({ dataKey, flow }) => {
-  const [w, setW] = useState(1200);
   const steam = [...flow].map((item, id) => {
     return {
       name: id,
@@ -28,7 +27,6 @@ const Diagram = ({ dataKey, flow }) => {
     bottom: "dataMin-10",
     animation: true,
   });
-  console.log(state);
 
   const getAxisYDomain = (from, to, ref, offset) => {
     const refData = steam.slice(from - 1, to);
