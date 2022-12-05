@@ -35,6 +35,7 @@ export const Dashboard = ({
   };
 
   const stop = () => {
+    console.log(data1);
     charastirctic.stopNotifications();
   };
   return (
