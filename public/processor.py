@@ -15,7 +15,7 @@ def HeartBeat(ECG, fs):
   dt = 1/ fs
   t = np.linspace(0, len(ECG)/fs, len(ECG), endpoint = True)
   ECG_filtered1 = filter(ECG, 5, fs, 10, 'high')
-  ECG_filtered = filter(ECG_filtered1, 35, fs, 10, 'low')
+  ECG_filtered = filter(ECG_filtered1, fs / 2, fs, 10, 'low')
   z = ECG_filtered
   pos = z * (z>0)
   thr_R = (max(pos) + np.mean(pos)) / 3
